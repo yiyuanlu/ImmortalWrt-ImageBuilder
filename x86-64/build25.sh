@@ -3,23 +3,20 @@
 # 目前支持少部分第三方软件apk 通过打开shell/apk-custom-packages.sh的注释来集成
 source shell/apk-custom-packages.sh
 echo "第三方apk软件包: $CUSTOM_PACKAGES"
-LOGFILE="/tmp/uci-defaults-log.txt"
-echo "Starting 99-custom.sh at $(date)" >> $LOGFILE
 echo "编译固件大小为: $PROFILE MB"
 echo "Include Docker: $INCLUDE_DOCKER"
 
-echo "Create pppoe-settings"
-mkdir -p  /home/build/immortalwrt/files/etc/config
-
-# 创建pppoe配置文件 yml传入环境变量ENABLE_PPPOE等 写入配置文件 供99-custom.sh读取
-cat << EOF > /home/build/immortalwrt/files/etc/config/pppoe-settings
-enable_pppoe=${ENABLE_PPPOE}
-pppoe_account=${PPPOE_ACCOUNT}
-pppoe_password=${PPPOE_PASSWORD}
+# The current upstream workflow bind-mounts a generated directory over
+# files/etc/config. Recreate the marker package there so the image always
+# contains a valid UCI config for the upgrade-safe first-boot guards.
+defaults_file='/home/build/immortalwrt/files/etc/config/n5105_defaults'
+mkdir -p "$(dirname "$defaults_file")"
+if [ ! -s "$defaults_file" ]; then
+cat <<'EOF' > "$defaults_file"
+config state 'metadata'
+	option schema '1'
 EOF
-
-echo "cat pppoe-settings"
-cat /home/build/immortalwrt/files/etc/config/pppoe-settings
+fi
 
 if [ -z "$CUSTOM_PACKAGES" ]; then
   echo "⚪️ 未选择 任何第三方软件包"
@@ -43,10 +40,13 @@ fi
 # 输出调试信息
 echo "$(date '+%Y-%m-%d %H:%M:%S') - 开始构建固件..."
 
-# Keep this build intentionally small: the standard ImmortalWrt package set
-# plus PassWall and its Simplified Chinese translation. PassWall's package
-# metadata pulls in its required proxy cores and runtime dependencies.
+# Keep the standard ImmortalWrt package set and add only the requested LuCI
+# applications. Package metadata pulls in required runtimes such as ttyd and
+# the PassWall proxy cores.
 PACKAGES="luci-app-passwall luci-i18n-passwall-zh-cn"
+PACKAGES="$PACKAGES luci-app-package-manager luci-i18n-package-manager-zh-cn"
+PACKAGES="$PACKAGES luci-app-ttyd luci-i18n-ttyd-zh-cn"
+PACKAGES="$PACKAGES luci-app-filemanager luci-i18n-filemanager-zh-cn"
 # ======== shell/apk-custom-packages.sh =======
 # 合并imm仓库以外的第三方插件 暂时注释
 PACKAGES="$PACKAGES $CUSTOM_PACKAGES"

@@ -1,0 +1,5 @@
+# Persistent first-boot markers for this image. The matching keep.d entry
+# preserves this file when sysupgrade is asked to keep configuration.
+
+config state 'metadata'
+	option schema '1'

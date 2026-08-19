@@ -1,0 +1,41 @@
+#!/bin/sh
+
+defaults_applied="$(
+	uci -q get n5105_defaults.passwall.applied 2>/dev/null || true
+)"
+[ "$defaults_applied" = '1' ] && exit 0
+
+set -e
+
+# PassWall ships its initial UCI data as a template. Materialize it before
+# applying the safe pre-enabled DNS policy if no config exists yet.
+default_config='/usr/share/passwall/0_default_config'
+if [ -s /etc/config/passwall ]; then
+	# A preserved config belongs to the user. Do not change its nodes or DNS
+	# policy during an upgrade from an older image that predates our marker.
+	uci set n5105_defaults.passwall='state'
+	uci set n5105_defaults.passwall.applied='1'
+	uci commit n5105_defaults
+	exit 0
+fi
+
+[ -s "$default_config" ] || exit 1
+cp -f "$default_config" /etc/config/passwall
+uci -q get 'passwall.@global[0]' >/dev/null
+
+uci set 'passwall.@global[0].enabled=1'
+uci set 'passwall.@global[0].socks_enabled=0'
+uci set 'passwall.@global[0].dns_shunt=chinadns-ng'
+uci set 'passwall.@global[0].dns_mode=tcp'
+uci set 'passwall.@global[0].remote_dns=1.1.1.1'
+uci set 'passwall.@global[0].use_default_dns=direct'
+uci set 'passwall.@global[0].chinadns_ng_default_tag=none'
+uci set 'passwall.@global[0].dns_redirect=1'
+uci set 'passwall.@global[0].filter_proxy_ipv6=1'
+uci commit passwall
+
+uci set n5105_defaults.passwall='state'
+uci set n5105_defaults.passwall.applied='1'
+uci commit n5105_defaults
+
+exit 0

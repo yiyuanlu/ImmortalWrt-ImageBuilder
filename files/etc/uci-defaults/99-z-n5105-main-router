@@ -1,0 +1,112 @@
+#!/bin/sh
+
+# Fixed four-port layout for the N5105 appliance:
+#   eth0       PPPoE WAN
+#   eth1-eth3  trusted LAN bridge
+
+defaults_applied="$(
+	uci -q get n5105_defaults.network.applied 2>/dev/null || true
+)"
+[ "$defaults_applied" = '1' ] && exit 0
+
+# Do not commit a layout that references absent interfaces. A non-zero exit
+# leaves this uci-defaults script in place for diagnosis or a later retry.
+for port in eth0 eth1 eth2 eth3; do
+	[ -e "/sys/class/net/$port" ] || exit 1
+done
+
+set -e
+
+# Preserve credentials from a configuration-restoring sysupgrade. A factory
+# image has no username or password, so no deletion is required here.
+uci -q delete network.wan.ifname || true
+uci -q delete network.wan6.ifname || true
+
+uci -q batch <<'EOF'
+set network.wan='interface'
+set network.wan.device='eth0'
+set network.wan.proto='pppoe'
+set network.wan.ipv6='1'
+set network.wan6='interface'
+set network.wan6.device='@wan'
+set network.wan6.proto='dhcpv6'
+set network.lan='interface'
+set network.lan.device='br-lan'
+set network.lan.proto='static'
+EOF
+
+uci -q delete network.lan.ifname || true
+uci -q delete network.lan.ipaddr || true
+uci -q delete network.lan.netmask || true
+uci add_list network.lan.ipaddr='10.18.101.249/24'
+
+bridge_section="$(
+	uci -q show network |
+		sed -n "s/^network\.\([^.=]*\)\.name='br-lan'$/\1/p" |
+		head -n 1
+)"
+if [ -z "$bridge_section" ]; then
+	bridge_section='br_lan'
+	uci set "network.$bridge_section=device"
+	uci set "network.$bridge_section.name=br-lan"
+	uci set "network.$bridge_section.type=bridge"
+fi
+
+uci -q delete "network.$bridge_section.ports" || true
+for port in eth1 eth2 eth3; do
+	uci add_list "network.$bridge_section.ports=$port"
+done
+
+uci set dhcp.lan.start='100'
+uci set dhcp.lan.limit='125'
+uci -q delete dhcp.lan.dhcp_option || true
+uci add_list dhcp.lan.dhcp_option='3,10.18.101.249'
+uci add_list dhcp.lan.dhcp_option='6,10.18.101.249'
+
+uci set firewall.nas_web_5000='redirect'
+uci set firewall.nas_web_5000.name='NAS-Web-5000'
+uci set firewall.nas_web_5000.family='ipv4'
+uci set firewall.nas_web_5000.src='wan'
+uci set firewall.nas_web_5000.src_dport='5000'
+uci set firewall.nas_web_5000.dest='lan'
+uci set firewall.nas_web_5000.dest_ip='10.18.101.252'
+uci set firewall.nas_web_5000.dest_port='5000'
+uci set firewall.nas_web_5000.proto='tcp'
+uci set firewall.nas_web_5000.target='DNAT'
+uci set firewall.nas_web_5000.reflection='1'
+
+uci set firewall.nas_web_5001='redirect'
+uci set firewall.nas_web_5001.name='NAS-Web-5001'
+uci set firewall.nas_web_5001.family='ipv4'
+uci set firewall.nas_web_5001.src='wan'
+uci set firewall.nas_web_5001.src_dport='5001'
+uci set firewall.nas_web_5001.dest='lan'
+uci set firewall.nas_web_5001.dest_ip='10.18.101.252'
+uci set firewall.nas_web_5001.dest_port='5001'
+uci set firewall.nas_web_5001.proto='tcp'
+uci set firewall.nas_web_5001.target='DNAT'
+uci set firewall.nas_web_5001.reflection='1'
+
+uci set firewall.nas_minecraft_25565='redirect'
+uci set firewall.nas_minecraft_25565.name='NAS-Minecraft-25565'
+uci set firewall.nas_minecraft_25565.family='ipv4'
+uci set firewall.nas_minecraft_25565.src='wan'
+uci set firewall.nas_minecraft_25565.src_dport='25565'
+uci set firewall.nas_minecraft_25565.dest='lan'
+uci set firewall.nas_minecraft_25565.dest_ip='10.18.101.252'
+uci set firewall.nas_minecraft_25565.dest_port='25565'
+uci -q delete firewall.nas_minecraft_25565.proto || true
+uci add_list firewall.nas_minecraft_25565.proto='tcp'
+uci add_list firewall.nas_minecraft_25565.proto='udp'
+uci set firewall.nas_minecraft_25565.target='DNAT'
+uci set firewall.nas_minecraft_25565.reflection='1'
+
+uci commit network
+uci commit dhcp
+uci commit firewall
+
+uci set n5105_defaults.network='state'
+uci set n5105_defaults.network.applied='1'
+uci commit n5105_defaults
+
+exit 0
