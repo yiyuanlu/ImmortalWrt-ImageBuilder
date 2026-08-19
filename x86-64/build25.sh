@@ -43,22 +43,10 @@ fi
 # 输出调试信息
 echo "$(date '+%Y-%m-%d %H:%M:%S') - 开始构建固件..."
 
-# ============= imm仓库内的插件==============
-# 定义所需安装的包列表 下列插件你都可以自行删减
-PACKAGES=""
-PACKAGES="$PACKAGES curl"
-PACKAGES="$PACKAGES luci-i18n-diskman-zh-cn"
-PACKAGES="$PACKAGES luci-i18n-firewall-zh-cn"
-PACKAGES="$PACKAGES luci-theme-argon"
-PACKAGES="$PACKAGES luci-app-argon-config"
-PACKAGES="$PACKAGES luci-i18n-argon-config-zh-cn"
-#25.12
-PACKAGES="$PACKAGES luci-i18n-package-manager-zh-cn"
-PACKAGES="$PACKAGES luci-i18n-ttyd-zh-cn"
-PACKAGES="$PACKAGES openssh-sftp-server"
-
-# 文件管理器
-PACKAGES="$PACKAGES luci-i18n-filemanager-zh-cn"
+# Keep this build intentionally small: the standard ImmortalWrt package set
+# plus PassWall and its Simplified Chinese translation. PassWall's package
+# metadata pulls in its required proxy cores and runtime dependencies.
+PACKAGES="luci-app-passwall luci-i18n-passwall-zh-cn"
 # ======== shell/apk-custom-packages.sh =======
 # 合并imm仓库以外的第三方插件 暂时注释
 PACKAGES="$PACKAGES $CUSTOM_PACKAGES"
