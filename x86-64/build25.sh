@@ -37,15 +37,49 @@ else
   ls -lah /home/build/immortalwrt/packages/
 fi
 
+# Pin the complete upstream MosDNS LuCI bundle for OpenWrt 25.12.  The
+# ImmortalWrt feed contains only the core service, so using the maintainer's
+# checksummed bundle provides the requested LuCI application and translation
+# without importing an unpinned third-party package repository.
+MOSDNS_RELEASE='v5.3.4-r8'
+MOSDNS_ARCHIVE='x86_64-openwrt-25.12.tar.gz'
+MOSDNS_ARCHIVE_SHA256='81be29306789a21982a0b77d636c3a9acacfbd6f6d44bddea553ccfc73eeced6'
+MOSDNS_ARCHIVE_URL="https://github.com/sbwml/luci-app-mosdns/releases/download/${MOSDNS_RELEASE}/${MOSDNS_ARCHIVE}"
+MOSDNS_ARCHIVE_FILE="/tmp/${MOSDNS_RELEASE}-${MOSDNS_ARCHIVE}"
+MOSDNS_PACKAGE_DIR='/home/build/immortalwrt/packages'
+
+mkdir -p "$MOSDNS_PACKAGE_DIR"
+curl --fail --location --retry 3 --retry-all-errors \
+  --output "$MOSDNS_ARCHIVE_FILE" "$MOSDNS_ARCHIVE_URL" || exit 1
+printf '%s  %s\n' "$MOSDNS_ARCHIVE_SHA256" "$MOSDNS_ARCHIVE_FILE" |
+  sha256sum -c - || exit 1
+tar -xzf "$MOSDNS_ARCHIVE_FILE" -C "$MOSDNS_PACKAGE_DIR" \
+  --strip-components=1 || exit 1
+
+for mosdns_apk in \
+  'mosdns-5.3.4-r8.apk' \
+  'luci-app-mosdns-1.7.7-r1.apk' \
+  'luci-i18n-mosdns-zh-cn-26.234.55867~b230ca1.apk' \
+  'v2dat-2022.12.15~47b8ee51-r4.apk' \
+  'v2ray-geoip-2026.08.22-r1.apk' \
+  'v2ray-geosite-2026.08.22-r1.apk'; do
+  [ -s "$MOSDNS_PACKAGE_DIR/$mosdns_apk" ] || {
+    echo "Missing expected MosDNS package: $mosdns_apk" >&2
+    exit 1
+  }
+done
+
 
 # 输出调试信息
 echo "$(date '+%Y-%m-%d %H:%M:%S') - 开始构建固件..."
 
-# Keep the standard ImmortalWrt package set and add only the requested LuCI
+# Keep the standard ImmortalWrt package set and add the requested LuCI
 # applications. Package metadata pulls in required runtimes such as ttyd and
-# the PassWall proxy cores.
+# the PassWall proxy cores; the pinned local bundle supplies MosDNS and data.
 PACKAGES="luci-app-passwall luci-i18n-passwall-zh-cn"
 PACKAGES="$PACKAGES luci-app-adguardhome"
+PACKAGES="$PACKAGES mosdns luci-app-mosdns luci-i18n-mosdns-zh-cn"
+PACKAGES="$PACKAGES v2dat v2ray-geoip v2ray-geosite"
 PACKAGES="$PACKAGES luci-app-package-manager luci-i18n-package-manager-zh-cn"
 PACKAGES="$PACKAGES luci-app-ttyd luci-i18n-ttyd-zh-cn"
 PACKAGES="$PACKAGES luci-app-filemanager luci-i18n-filemanager-zh-cn"
