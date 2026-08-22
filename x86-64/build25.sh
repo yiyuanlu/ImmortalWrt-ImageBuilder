@@ -44,6 +44,12 @@ fi
 MOSDNS_RELEASE='v5.3.4-r8'
 MOSDNS_ARCHIVE='x86_64-openwrt-25.12.tar.gz'
 MOSDNS_ARCHIVE_SHA256='81be29306789a21982a0b77d636c3a9acacfbd6f6d44bddea553ccfc73eeced6'
+MOSDNS_VERSION="${MOSDNS_RELEASE#v}"
+MOSDNS_LUCI_VERSION='1.7.7-r1'
+MOSDNS_I18N_VERSION='26.234.55867~b230ca1'
+V2DAT_VERSION='2022.12.15~47b8ee51-r4'
+V2RAY_GEOIP_VERSION='2026.08.22-r1'
+V2RAY_GEOSITE_VERSION='2026.08.22-r1'
 MOSDNS_ARCHIVE_URL="https://github.com/sbwml/luci-app-mosdns/releases/download/${MOSDNS_RELEASE}/${MOSDNS_ARCHIVE}"
 MOSDNS_ARCHIVE_FILE="/tmp/${MOSDNS_RELEASE}-${MOSDNS_ARCHIVE}"
 MOSDNS_PACKAGE_DIR='/home/build/immortalwrt/packages'
@@ -57,12 +63,12 @@ tar -xzf "$MOSDNS_ARCHIVE_FILE" -C "$MOSDNS_PACKAGE_DIR" \
   --strip-components=1 || exit 1
 
 for mosdns_apk in \
-  'mosdns-5.3.4-r8.apk' \
-  'luci-app-mosdns-1.7.7-r1.apk' \
-  'luci-i18n-mosdns-zh-cn-26.234.55867~b230ca1.apk' \
-  'v2dat-2022.12.15~47b8ee51-r4.apk' \
-  'v2ray-geoip-2026.08.22-r1.apk' \
-  'v2ray-geosite-2026.08.22-r1.apk'; do
+  "mosdns-${MOSDNS_VERSION}.apk" \
+  "luci-app-mosdns-${MOSDNS_LUCI_VERSION}.apk" \
+  "luci-i18n-mosdns-zh-cn-${MOSDNS_I18N_VERSION}.apk" \
+  "v2dat-${V2DAT_VERSION}.apk" \
+  "v2ray-geoip-${V2RAY_GEOIP_VERSION}.apk" \
+  "v2ray-geosite-${V2RAY_GEOSITE_VERSION}.apk"; do
   [ -s "$MOSDNS_PACKAGE_DIR/$mosdns_apk" ] || {
     echo "Missing expected MosDNS package: $mosdns_apk" >&2
     exit 1
@@ -78,11 +84,12 @@ echo "$(date '+%Y-%m-%d %H:%M:%S') - 开始构建固件..."
 # the PassWall proxy cores; the pinned local bundle supplies MosDNS and data.
 PACKAGES="luci-app-passwall luci-i18n-passwall-zh-cn"
 PACKAGES="$PACKAGES luci-app-adguardhome"
-# APK's native fuzzy-version constraints select the checksummed local GeoData
+# APK's native fuzzy-version constraints select the complete checksummed
 # bundle without bypassing the ImageBuilder's signed local repository. Unlike
 # name=version, this syntax also avoids a pkg_ver leak in the 25.12.1 builder.
-PACKAGES="$PACKAGES mosdns luci-app-mosdns luci-i18n-mosdns-zh-cn v2dat"
-PACKAGES="$PACKAGES v2ray-geoip~2026.08.22-r1 v2ray-geosite~2026.08.22-r1"
+PACKAGES="$PACKAGES mosdns~$MOSDNS_VERSION luci-app-mosdns~$MOSDNS_LUCI_VERSION"
+PACKAGES="$PACKAGES luci-i18n-mosdns-zh-cn~$MOSDNS_I18N_VERSION v2dat~$V2DAT_VERSION"
+PACKAGES="$PACKAGES v2ray-geoip~$V2RAY_GEOIP_VERSION v2ray-geosite~$V2RAY_GEOSITE_VERSION"
 PACKAGES="$PACKAGES luci-app-package-manager luci-i18n-package-manager-zh-cn"
 PACKAGES="$PACKAGES luci-app-ttyd luci-i18n-ttyd-zh-cn"
 PACKAGES="$PACKAGES luci-app-filemanager luci-i18n-filemanager-zh-cn"
