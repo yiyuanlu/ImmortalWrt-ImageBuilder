@@ -56,7 +56,6 @@ printf '%s  %s\n' "$MOSDNS_ARCHIVE_SHA256" "$MOSDNS_ARCHIVE_FILE" |
 tar -xzf "$MOSDNS_ARCHIVE_FILE" -C "$MOSDNS_PACKAGE_DIR" \
   --strip-components=1 || exit 1
 
-MOSDNS_PACKAGES=''
 for mosdns_apk in \
   'mosdns-5.3.4-r8.apk' \
   'luci-app-mosdns-1.7.7-r1.apk' \
@@ -68,7 +67,6 @@ for mosdns_apk in \
     echo "Missing expected MosDNS package: $mosdns_apk" >&2
     exit 1
   }
-  MOSDNS_PACKAGES="$MOSDNS_PACKAGES packages/$mosdns_apk"
 done
 
 
@@ -80,10 +78,11 @@ echo "$(date '+%Y-%m-%d %H:%M:%S') - 开始构建固件..."
 # the PassWall proxy cores; the pinned local bundle supplies MosDNS and data.
 PACKAGES="luci-app-passwall luci-i18n-passwall-zh-cn"
 PACKAGES="$PACKAGES luci-app-adguardhome"
-# Give apk the checksummed files themselves. This pins the exact package
-# identity and prevents a same-named package in a remote feed from winning
-# repository/version selection.
-PACKAGES="$PACKAGES $MOSDNS_PACKAGES"
+# APK's native fuzzy-version constraints select the checksummed local GeoData
+# bundle without bypassing the ImageBuilder's signed local repository. Unlike
+# name=version, this syntax also avoids a pkg_ver leak in the 25.12.1 builder.
+PACKAGES="$PACKAGES mosdns luci-app-mosdns luci-i18n-mosdns-zh-cn v2dat"
+PACKAGES="$PACKAGES v2ray-geoip~2026.08.22-r1 v2ray-geosite~2026.08.22-r1"
 PACKAGES="$PACKAGES luci-app-package-manager luci-i18n-package-manager-zh-cn"
 PACKAGES="$PACKAGES luci-app-ttyd luci-i18n-ttyd-zh-cn"
 PACKAGES="$PACKAGES luci-app-filemanager luci-i18n-filemanager-zh-cn"
