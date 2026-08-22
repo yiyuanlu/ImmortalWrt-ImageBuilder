@@ -69,6 +69,20 @@ for mosdns_apk in \
   }
 done
 
+# ImmortalWrt 25.12.1's ImageBuilder leaves pkg_ver set after processing a
+# version-constrained APK.  Without this one-line upstream workaround, the
+# requested GeoIP/GeoSite version is accidentally applied to every package
+# that follows it, including the default kernel modules.  Reset the temporary
+# variable for each package, then keep the two data packages strictly pinned.
+if ! grep -Fq '  $(eval pkg_ver:=)' Makefile; then
+  patch --forward --silent Makefile \
+    x86-64/imagebuilder-apk-version-pin.patch || exit 1
+fi
+grep -Fq '  $(eval pkg_ver:=)' Makefile || {
+  echo 'ImageBuilder APK version-pin workaround was not applied' >&2
+  exit 1
+}
+
 
 # 输出调试信息
 echo "$(date '+%Y-%m-%d %H:%M:%S') - 开始构建固件..."
