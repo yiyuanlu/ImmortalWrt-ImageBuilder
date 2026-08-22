@@ -45,6 +45,7 @@ echo "$(date '+%Y-%m-%d %H:%M:%S') - 开始构建固件..."
 # applications. Package metadata pulls in required runtimes such as ttyd and
 # the PassWall proxy cores.
 PACKAGES="luci-app-passwall luci-i18n-passwall-zh-cn"
+PACKAGES="$PACKAGES luci-app-adguardhome"
 PACKAGES="$PACKAGES luci-app-package-manager luci-i18n-package-manager-zh-cn"
 PACKAGES="$PACKAGES luci-app-ttyd luci-i18n-ttyd-zh-cn"
 PACKAGES="$PACKAGES luci-app-filemanager luci-i18n-filemanager-zh-cn"
