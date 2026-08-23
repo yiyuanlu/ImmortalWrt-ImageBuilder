@@ -9,6 +9,14 @@ defaults_applied="$(
 )"
 [ "$defaults_applied" = '1' ] && exit 0
 
+# OpenWrt leaves one of these archives in place while applying uci-defaults
+# after a configuration-preserving sysupgrade.  An older, unrelated image
+# cannot carry our persistent marker, so protect its restored configuration
+# explicitly instead of treating the upgrade as a factory boot.
+if [ -f /sysupgrade.tgz ] || [ -f /tmp/sysupgrade.tar ]; then
+	exit 0
+fi
+
 # Do not commit a layout that references absent interfaces. A non-zero exit
 # leaves this uci-defaults script in place for diagnosis or a later retry.
 for port in eth0 eth1 eth2 eth3; do
