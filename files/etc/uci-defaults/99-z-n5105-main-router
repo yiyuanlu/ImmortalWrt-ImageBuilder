@@ -38,6 +38,9 @@ EOF
 uci -q delete network.lan.ifname || true
 uci -q delete network.lan.ipaddr || true
 uci -q delete network.lan.netmask || true
+# Keep WAN6 and the IPv6 stack available, but do not assign a delegated
+# prefix or advertise IPv6 services on the trusted LAN by default.
+uci -q delete network.lan.ip6assign || true
 uci add_list network.lan.ipaddr='10.18.101.249/24'
 
 bridge_section="$(
@@ -59,6 +62,9 @@ done
 
 uci set dhcp.lan.start='100'
 uci set dhcp.lan.limit='125'
+uci set dhcp.lan.ra='disabled'
+uci set dhcp.lan.dhcpv6='disabled'
+uci set dhcp.lan.ndp='disabled'
 uci -q delete dhcp.lan.dhcp_option || true
 uci add_list dhcp.lan.dhcp_option='3,10.18.101.249'
 uci add_list dhcp.lan.dhcp_option='6,10.18.101.249'
