@@ -84,9 +84,10 @@ echo "$(date '+%Y-%m-%d %H:%M:%S') - 开始构建固件..."
 # the PassWall proxy cores; the pinned local bundle supplies MosDNS and data.
 PACKAGES="luci-app-passwall luci-i18n-passwall-zh-cn"
 PACKAGES="$PACKAGES luci-app-adguardhome"
+PACKAGES="$PACKAGES luci-app-daed luci-i18n-daed-zh-cn"
 # APK's native fuzzy-version constraints select the complete checksummed
 # bundle without bypassing the ImageBuilder's signed local repository. Unlike
-# name=version, this syntax also avoids a pkg_ver leak in the 25.12.1 builder.
+# name=version, this syntax also avoids a pkg_ver leak in the 25.12 builder.
 PACKAGES="$PACKAGES mosdns~$MOSDNS_VERSION luci-app-mosdns~$MOSDNS_LUCI_VERSION"
 PACKAGES="$PACKAGES luci-i18n-mosdns-zh-cn~$MOSDNS_I18N_VERSION v2dat~$V2DAT_VERSION"
 PACKAGES="$PACKAGES v2ray-geoip~$V2RAY_GEOIP_VERSION v2ray-geosite~$V2RAY_GEOSITE_VERSION"
